@@ -95,8 +95,8 @@ def visualize_2d_samples(
     data: np.ndarray,
     title: str,
     labels: Optional[str] = None,
-    xlabel: Optional[str] = None,
-    ylabel: Optional[str] = None,
+    xlabel: str = "x1",
+    ylabel: str = "x2",
 ) -> None:
     plt.figure(figsize=(5, 5))
     plt.scatter(data[:, 0], data[:, 1], s=1, c=labels)

@@ -13,7 +13,10 @@ def load_MNIST(with_targets: bool = False) -> Tuple[np.ndarray, np.ndarray]:
     test_data = np.expand_dims(test_data, axis=axis_index)
 
     if with_targets:
-        train_labels, test_labels = train_dataset.targets.numpy(), test_dataset.targets.numpy()
+        train_labels, test_labels = (
+            train_dataset.targets.numpy(),
+            test_dataset.targets.numpy(),
+        )
         return train_data, test_data, train_labels, test_labels
 
     return train_data, test_data
@@ -25,13 +28,18 @@ def load_CIFAR10(with_targets: bool = False) -> Tuple[np.ndarray, np.ndarray]:
     train_data, test_data = train_dataset.data, test_dataset.data
 
     if with_targets:
-        train_labels, test_labels = train_dataset.targets.numpy(), test_dataset.targets.numpy()
+        train_labels, test_labels = (
+            train_dataset.targets.numpy(),
+            test_dataset.targets.numpy(),
+        )
         return train_data, test_data, train_labels, test_labels
 
     return train_data, test_data
 
 
-def _load_dataset(name: str, with_targets: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+def _load_dataset(
+    name: str, with_targets: bool = False
+) -> Tuple[np.ndarray, np.ndarray]:
     if name == "mnist":
         return load_MNIST(with_targets=with_targets)
     elif name == "cifar10":
