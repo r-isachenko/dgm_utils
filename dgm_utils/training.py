@@ -6,14 +6,13 @@ import numpy as np
 
 import torch
 
-from .visualize import show_samples, visualize_2d_samples
+from .visualize import show_samples, visualize_2d_samples, plot_training_curves
 
 
 def train_epoch(
     model: object,
     train_loader: object,
     optimizer: torch.optim.Optimizer,
-    scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
     device: str = "cpu",
     loss_key: str = "total",
 ) -> defaultdict:
@@ -26,8 +25,6 @@ def train_epoch(
         optimizer.zero_grad()
         losses[loss_key].backward()
         optimizer.step()
-        if scheduler is not None:
-            scheduler.step()
 
         for k, v in losses.items():
             stats[k].append(v.item())
@@ -63,20 +60,24 @@ def train_model(
     test_loader: object,
     epochs: int,
     optimizer: torch.optim.Optimizer,
-    scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+    scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
     device: str = "cpu",
     loss_key: str = "total_loss",
+    n_samples: int = 100,
 ) -> Tuple[dict, dict]:
 
     train_losses = defaultdict(list)
     test_losses = defaultdict(list)
     model = model.to(device)
+    print("Start of the training")
 
     for epoch in range(epochs):
         model.train()
         train_loss = train_epoch(
-            model, train_loader, optimizer, scheduler, device, loss_key
+            model, train_loader, optimizer, device, loss_key
         )
+        if scheduler is not None:
+            scheduler.step()
         test_loss = eval_model(model, test_loader, device)
 
         for k in train_loss.keys():
@@ -85,7 +86,7 @@ def train_model(
 
         clear_output(wait=True)
         with torch.no_grad():
-            samples = model.sample(100)
+            samples = model.sample(n_samples)
             samples = samples.cpu().detach().numpy()
 
         epoch_loss = np.mean(train_loss[loss_key])
@@ -94,5 +95,5 @@ def train_model(
             visualize_2d_samples(samples, title=title)
         else:
             show_samples(samples, title=title)
-
-    return dict(train_losses), dict(test_losses)
+        plot_training_curves(train_losses, test_losses)
+    print("End of the training")
