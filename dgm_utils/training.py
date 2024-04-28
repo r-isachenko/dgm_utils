@@ -85,19 +85,21 @@ def train_model(
             train_losses[k].extend(train_loss[k])
             test_losses[k].append(test_loss[k])
 
+        epoch_loss = np.mean(train_loss[loss_key])
         if visualize_samples:
             clear_output(wait=True)
             with torch.no_grad():
                 samples = model.sample(n_samples)
                 samples = samples.cpu().detach().numpy()
     
-            epoch_loss = np.mean(train_loss[loss_key])
             title = f"Samples, epoch: {epoch}, {loss_key}: {epoch_loss:.3f}"
             if check_samples_is_2d(samples):
                 visualize_2d_samples(samples, title=title)
             else:
                 show_samples(samples, title=title)
             plot_training_curves(train_losses, test_losses)
+        else:
+            print(f"Epoch: {epoch}, loss: {epoch_loss}")
     if not visualize_samples:
         plot_training_curves(train_losses, test_losses)
     print("End of the training")
