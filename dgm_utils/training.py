@@ -1,24 +1,28 @@
 from collections import defaultdict
 from IPython.display import clear_output
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
 import torch
+from torch.utils.data import DataLoader
+from torch.optim.optimizer import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 
 from tqdm.auto import tqdm
 
 from .visualize import show_samples, visualize_2d_samples, plot_training_curves
+from .base import BaseModel
 
 
 def train_epoch(
     epoch: int, 
-    model: object,
-    train_loader: object,
-    optimizer: torch.optim.Optimizer,
+    model: BaseModel,
+    train_loader: DataLoader,
+    optimizer: Optimizer,
     device: str = "cpu",
     loss_key: str = "total",
-) -> defaultdict:
+) -> defaultdict[str, list[float]]:
     model.train()
 
     stats = defaultdict(list)
@@ -35,7 +39,7 @@ def train_epoch(
     return stats
 
 
-def eval_model(epoch: int, model: object, data_loader: object, device: str = "cpu") -> defaultdict:
+def eval_model(epoch: int, model: BaseModel, data_loader: DataLoader, device: str = "cpu") -> defaultdict[str, float]:
     model.eval()
     stats = defaultdict(float)
     with torch.no_grad():
@@ -46,7 +50,7 @@ def eval_model(epoch: int, model: object, data_loader: object, device: str = "cp
                 stats[k] += v.item() * x.shape[0]
 
         for k in stats.keys():
-            stats[k] /= len(data_loader.dataset)
+            stats[k] /= len(data_loader.dataset) # type: ignore
     return stats
 
 
@@ -58,25 +62,24 @@ def check_samples_is_2d(samples: np.ndarray) -> bool:
 
 
 def train_model(
-    model: object,
-    train_loader: object,
-    test_loader: object,
+    model: BaseModel,
+    train_loader: DataLoader,
+    test_loader: DataLoader,
     epochs: int,
-    optimizer: torch.optim.Optimizer,
-    scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+    optimizer: Optimizer,
+    scheduler: Optional[LRScheduler] = None,
     device: str = "cpu",
     loss_key: str = "total_loss",
     n_samples: int = 100,
     visualize_samples: bool = True,
-) -> Tuple[dict, dict]:
+):
 
-    train_losses = defaultdict(list)
-    test_losses = defaultdict(list)
+    train_losses: dict[str, list[float]] = defaultdict(list)
+    test_losses: dict[str, list[float]] = defaultdict(list)
     model = model.to(device)
     print("Start of the training")
 
     for epoch in range(1, epochs + 1):
-        model.train()
         train_loss = train_epoch(
             epoch, model, train_loader, optimizer, device, loss_key
         )
