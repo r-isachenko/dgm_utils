@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from torchvision.utils import make_grid
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 
@@ -48,7 +48,7 @@ def plot_training_curves(
 def show_samples(
     samples: np.ndarray | torch.Tensor,
     title: str,
-    figsize: Optional[Tuple[int, int]] = None,
+    figsize: Optional[tuple[int, int]] = None,
     nrow: Optional[int] = None,
 ) -> None:
     if isinstance(samples, np.ndarray):
