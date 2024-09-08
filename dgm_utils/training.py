@@ -93,7 +93,10 @@ def train_model(
 
         epoch_loss = np.mean(train_loss[loss_key])
         if visualize_samples:
-            samples = model.sample(n_samples)
+            with torch.no_grad():
+                samples = model.sample(n_samples)
+                if isinstance(samples, torch.Tensor):
+                    samples = samples.cpu().detach().numpy()
     
             clear_output(wait=True)
             title = f"Samples, epoch: {epoch}, {loss_key}: {epoch_loss:.3f}"
