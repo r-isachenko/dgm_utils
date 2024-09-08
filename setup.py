@@ -4,7 +4,11 @@ import sys
 
 
 if sys.version_info < (3, 11):
-    sys.exit('Sorry, Python < 3.11 is not supported')
+    exit_string = (
+        'Sorry, Python < 3.11 is not supported. '
+        f'Current verion is {".".join(map(str, sys.version_info[:2]))}'
+    )
+    sys.exit(exit_string)
 
 setup(
     name="dgm_utils",
