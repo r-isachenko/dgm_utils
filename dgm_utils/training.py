@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import LRScheduler
 from tqdm.auto import tqdm
 
 from .visualize import show_samples, visualize_2d_samples, plot_training_curves
-from .base import BaseModel
+from .model import BaseModel
 
 
 def train_epoch(
