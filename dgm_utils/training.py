@@ -1,25 +1,32 @@
 from collections import defaultdict
 from IPython.display import clear_output
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
 import torch
+from torch.utils.data import DataLoader
+from torch.optim.optimizer import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
+
+from tqdm.auto import tqdm
 
 from .visualize import show_samples, visualize_2d_samples, plot_training_curves
+from .model import BaseModel
 
 
 def train_epoch(
-    model: object,
-    train_loader: object,
-    optimizer: torch.optim.Optimizer,
+    epoch: int, 
+    model: BaseModel,
+    train_loader: DataLoader,
+    optimizer: Optimizer,
     device: str = "cpu",
     loss_key: str = "total",
-) -> defaultdict:
+) -> defaultdict[str, list[float]]:
     model.train()
 
     stats = defaultdict(list)
-    for x in train_loader:
+    for x in tqdm(train_loader, desc=f'Training epoch {epoch}'):
         x = x.to(device)
         losses = model.loss(x)
         optimizer.zero_grad()
@@ -32,18 +39,18 @@ def train_epoch(
     return stats
 
 
-def eval_model(model: object, data_loader: object, device: str = "cpu") -> defaultdict:
+def eval_model(epoch: int, model: BaseModel, data_loader: DataLoader, device: str = "cpu") -> defaultdict[str, float]:
     model.eval()
     stats = defaultdict(float)
     with torch.no_grad():
-        for x in data_loader:
+        for x in tqdm(data_loader, desc=f'Evaluating epoch {epoch}'):
             x = x.to(device)
             losses = model.loss(x)
             for k, v in losses.items():
                 stats[k] += v.item() * x.shape[0]
 
         for k in stats.keys():
-            stats[k] /= len(data_loader.dataset)
+            stats[k] /= len(data_loader.dataset) # type: ignore
     return stats
 
 
@@ -55,31 +62,30 @@ def check_samples_is_2d(samples: np.ndarray) -> bool:
 
 
 def train_model(
-    model: object,
-    train_loader: object,
-    test_loader: object,
+    model: BaseModel,
+    train_loader: DataLoader,
+    test_loader: DataLoader,
     epochs: int,
-    optimizer: torch.optim.Optimizer,
-    scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
+    optimizer: Optimizer,
+    scheduler: Optional[LRScheduler] = None,
     device: str = "cpu",
     loss_key: str = "total_loss",
     n_samples: int = 100,
     visualize_samples: bool = True,
-) -> Tuple[dict, dict]:
+):
 
-    train_losses = defaultdict(list)
-    test_losses = defaultdict(list)
+    train_losses: dict[str, list[float]] = defaultdict(list)
+    test_losses: dict[str, list[float]] = defaultdict(list)
     model = model.to(device)
     print("Start of the training")
 
-    for epoch in range(epochs):
-        model.train()
+    for epoch in range(1, epochs + 1):
         train_loss = train_epoch(
-            model, train_loader, optimizer, device, loss_key
+            epoch, model, train_loader, optimizer, device, loss_key
         )
         if scheduler is not None:
             scheduler.step()
-        test_loss = eval_model(model, test_loader, device)
+        test_loss = eval_model(epoch, model, test_loader, device)
 
         for k in train_loss.keys():
             train_losses[k].extend(train_loss[k])
@@ -89,7 +95,8 @@ def train_model(
         if visualize_samples:
             with torch.no_grad():
                 samples = model.sample(n_samples)
-                samples = samples.cpu().detach().numpy()
+                if isinstance(samples, torch.Tensor):
+                    samples = samples.cpu().detach().numpy()
     
             clear_output(wait=True)
             title = f"Samples, epoch: {epoch}, {loss_key}: {epoch_loss:.3f}"

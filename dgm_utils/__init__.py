@@ -8,3 +8,4 @@ from .visualize import (
     visualize_2d_samples,
     visualize_2d_densities,
 )
+from .model import BaseModel
