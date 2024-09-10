@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from torchvision.utils import make_grid
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -13,8 +13,8 @@ TITLE_FONT_SIZE = 16
 
 
 def plot_training_curves(
-    train_losses: dict[str, list[float]],
-    test_losses: dict[str, list[float]],
+    train_losses: Dict[str, List[float]],
+    test_losses: Dict[str, List[float]],
     logscale_y: bool = False,
     logscale_x: bool = False,
 ) -> None:
@@ -48,7 +48,7 @@ def plot_training_curves(
 def show_samples(
     samples: np.ndarray | torch.Tensor,
     title: str,
-    figsize: Optional[tuple[int, int]] = None,
+    figsize: Optional[Tuple[int, int]] = None,
     nrow: Optional[int] = None,
 ) -> None:
     if isinstance(samples, np.ndarray):

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from IPython.display import clear_output
-from typing import Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -22,7 +22,7 @@ def train_epoch(
     optimizer: Optimizer,
     device: str = "cpu",
     loss_key: str = "total",
-) -> defaultdict[str, list[float]]:
+) -> defaultdict[str, List[float]]:
     model.train()
 
     stats = defaultdict(list)
@@ -74,8 +74,8 @@ def train_model(
     visualize_samples: bool = True,
 ):
 
-    train_losses: dict[str, list[float]] = defaultdict(list)
-    test_losses: dict[str, list[float]] = defaultdict(list)
+    train_losses: Dict[str, List[float]] = defaultdict(list)
+    test_losses: Dict[str, List[float]] = defaultdict(list)
     model = model.to(device)
     print("Start of the training")
 

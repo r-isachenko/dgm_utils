@@ -1,3 +1,5 @@
+from typing import Dict
+
 import torch
 from torch import nn
 
@@ -14,7 +16,7 @@ class BaseModel(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError('Not implemented')
 
-    def loss(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+    def loss(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         raise NotImplementedError('Not implemented')
 
     @torch.no_grad()
