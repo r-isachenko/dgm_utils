@@ -72,6 +72,8 @@ def train_model(
     loss_key: str = "total_loss",
     n_samples: int = 100,
     visualize_samples: bool = True,
+    logscale_y: bool = False,
+    logscale_x: bool = False,
 ):
 
     train_losses: Dict[str, List[float]] = defaultdict(list)
@@ -104,9 +106,9 @@ def train_model(
                 visualize_2d_samples(samples, title=title)
             else:
                 show_samples(samples, title=title)
-            plot_training_curves(train_losses, test_losses)
+            plot_training_curves(train_losses, test_losses, logscale_y, logscale_x)
         else:
             print(f"Epoch: {epoch}, loss: {epoch_loss}")
     if not visualize_samples:
-        plot_training_curves(train_losses, test_losses)
+        plot_training_curves(train_losses, test_losses, logscale_y, logscale_x)
     print("End of the training")
