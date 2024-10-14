@@ -55,7 +55,7 @@ def show_samples(
         samples = torch.Tensor(samples)
     if nrow is None:
         nrow = int(np.sqrt(len(samples)))
-    grid_samples = make_grid(samples, nrow=nrow)
+    grid_samples = make_grid(samples, nrow=nrow, normalize=True, scale_each=True)
 
     grid_img = grid_samples.permute(1, 2, 0)
     if figsize is None:
