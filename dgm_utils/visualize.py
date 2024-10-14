@@ -52,7 +52,7 @@ def show_samples(
     nrow: Optional[int] = None,
 ) -> None:
     if isinstance(samples, np.ndarray):
-        samples = torch.Tensor(samples)
+        samples = torch.tensor(samples, dtype=torch.float)
     if nrow is None:
         nrow = int(np.sqrt(len(samples)))
     grid_samples = make_grid(samples, nrow=nrow, normalize=True, scale_each=True)
