@@ -53,7 +53,7 @@ def show_samples(
 ) -> None:
     if isinstance(samples, np.ndarray):
         samples = torch.tensor(samples, dtype=torch.float)
-    if any(samples > 1):
+    if (samples > 1).any():
         samples /= 255
     if nrow is None:
         nrow = int(np.sqrt(len(samples)))
