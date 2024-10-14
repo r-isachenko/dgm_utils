@@ -108,7 +108,8 @@ def train_model(
                 show_samples(samples, title=title)
             plot_training_curves(train_losses, test_losses, logscale_y, logscale_x)
         else:
+            clear_output(wait=True)
             print(f"Epoch: {epoch}, loss: {epoch_loss}")
-    if not visualize_samples:
-        plot_training_curves(train_losses, test_losses, logscale_y, logscale_x)
+            plot_training_curves(train_losses, test_losses, logscale_y, logscale_x)
+                    
     print("End of the training")
