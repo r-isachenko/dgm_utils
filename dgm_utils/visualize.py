@@ -53,9 +53,11 @@ def show_samples(
 ) -> None:
     if isinstance(samples, np.ndarray):
         samples = torch.tensor(samples, dtype=torch.float)
+    if any(samples > 1):
+        samples /= 255
     if nrow is None:
         nrow = int(np.sqrt(len(samples)))
-    grid_samples = make_grid(samples, nrow=nrow, normalize=True, scale_each=True)
+    grid_samples = make_grid(samples, nrow=nrow)
 
     grid_img = grid_samples.permute(1, 2, 0)
     if figsize is None:
