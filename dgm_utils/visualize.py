@@ -13,15 +13,19 @@ TITLE_FONT_SIZE = 16
 
 
 def plot_training_curves(
+    epochs: int,
     train_losses: Dict[str, List[float]],
     test_losses: Optional[Dict[str, List[float]]],
     logscale_y: bool = False,
     logscale_x: bool = False,
 ) -> None:
+    if test_losses is not None:
+        n_test = len(test_losses[list(train_losses.keys())[0]])
+        x_test = np.arange(n_test)
+
     n_train = len(train_losses[list(train_losses.keys())[0]])
-    n_test = len(test_losses[list(train_losses.keys())[0]])
-    x_train = np.linspace(0, n_test - 1, n_train)
-    x_test = np.arange(n_test)
+    x_train = np.linspace(0, epochs - 1, n_train)
+    
 
     plt.figure()
     for key, value in train_losses.items():
