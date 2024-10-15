@@ -14,7 +14,7 @@ TITLE_FONT_SIZE = 16
 
 def plot_training_curves(
     train_losses: Dict[str, List[float]],
-    test_losses: Dict[str, List[float]],
+    test_losses: Optional[Dict[str, List[float]]],
     logscale_y: bool = False,
     logscale_x: bool = False,
 ) -> None:
@@ -27,8 +27,9 @@ def plot_training_curves(
     for key, value in train_losses.items():
         plt.plot(x_train, value, label=key + "_train")
 
-    for key, value in test_losses.items():
-        plt.plot(x_test, value, label=key + "_test")
+    if test_losses is not None:
+        for key, value in test_losses.items():
+            plt.plot(x_test, value, label=key + "_test")
 
     if logscale_y:
         plt.semilogy()
