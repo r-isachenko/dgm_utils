@@ -1,4 +1,4 @@
-from .training import train_model
+from .training import train_model, train_adversarial
 from .data import load_dataset
 from .visualize import (
     plot_training_curves,
