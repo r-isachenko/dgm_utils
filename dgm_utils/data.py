@@ -97,12 +97,16 @@ def _load_dataset(
 
 def load_dataset(
     name: str, 
+    size: Optional[int] = None,
     flatten: bool = False, 
     binarize: bool = True, 
     with_targets: bool = False
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray, Optional[np.ndarray]]:
 
-    train_data, train_labels, test_data, test_labels = _load_dataset(name, with_targets=with_targets)
+    train_data, train_labels, test_data, test_labels = _load_dataset(
+        name, size=size, 
+        with_targets=with_targets
+    )
     train_data = train_data.astype("float32")
     test_data = test_data.astype("float32")
 
