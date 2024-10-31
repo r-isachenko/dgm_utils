@@ -56,21 +56,24 @@ def show_samples(
     figsize: Optional[Tuple[int, int]] = None,
     nrow: Optional[int] = None,
 ) -> None:
+    normalize = False
     if isinstance(samples, np.ndarray):
         samples = torch.tensor(samples)
-    samples = samples.float()
-    if (samples > 1).any():
+
+    if not samples.is_floating_point() and not samples.is_complex():
         samples /= 255
+    elif (samples >= -1).all() and (samples <= 1).all():
+        samples = (samples + 1) / 2
+    else:
+        normalize = True
+
     if nrow is None:
         nrow = int(np.sqrt(len(samples)))
-    grid_samples = make_grid(samples, nrow=nrow)
 
-    grid_img = grid_samples.permute(1, 2, 0)
-    if figsize is None:
-        figsize = (6, 6)
+    grid_samples = make_grid(samples, nrow=nrow, normalize=normalize, scale_each=True)
+    grid_img = grid_samples.clip(0, 1).permute(1, 2, 0)
 
-    grid_img = grid_img.clip(0, 1)
-    plt.figure(figsize=figsize)
+    plt.figure(figsize=(6, 6) if figsize is None else figsize)
     plt.title(title, fontsize=TITLE_FONT_SIZE)
     plt.imshow(grid_img)
     plt.axis("off")
@@ -88,13 +91,14 @@ def visualize_2d_data(
     test_data: np.ndarray,
     train_labels: Optional[str] = None,
     test_labels: Optional[str] = None,
+    s: int = 10
 ) -> None:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     ax1.set_title("train", fontsize=TITLE_FONT_SIZE)
-    ax1.scatter(train_data[:, 0], train_data[:, 1], s=1, c=train_labels)
+    ax1.scatter(train_data[:, 0], train_data[:, 1], s=s, c=train_labels)
     ax1.tick_params(labelsize=LABEL_FONT_SIZE)
     ax2.set_title("test", fontsize=TITLE_FONT_SIZE)
-    ax2.scatter(test_data[:, 0], test_data[:, 1], s=1, c=test_labels)
+    ax2.scatter(test_data[:, 0], test_data[:, 1], s=s, c=test_labels)
     ax2.tick_params(labelsize=LABEL_FONT_SIZE)
     plt.show()
 
@@ -105,9 +109,10 @@ def visualize_2d_samples(
     labels: Optional[str] = None,
     xlabel: str = "x1",
     ylabel: str = "x2",
+    s: int = 10
 ) -> None:
     plt.figure(figsize=(5, 5))
-    plt.scatter(data[:, 0], data[:, 1], s=1, c=labels)
+    plt.scatter(data[:, 0], data[:, 1], s=s, c=labels)
     plt.title(title, fontsize=TITLE_FONT_SIZE)
     plt.xticks(fontsize=TICKS_FONT_SIZE)
     plt.yticks(fontsize=TICKS_FONT_SIZE)
