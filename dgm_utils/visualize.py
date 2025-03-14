@@ -55,23 +55,16 @@ def show_samples(
     title: str,
     figsize: Optional[Tuple[int, int]] = None,
     nrow: Optional[int] = None,
+    normalize: bool = False
 ) -> None:
     normalize = False
     if isinstance(samples, np.ndarray):
         samples = torch.tensor(samples)
-
-    if not samples.is_floating_point() and not samples.is_complex():
-        samples /= 255
-    elif (samples >= -1).all() and (samples <= 1).all():
-        samples = (samples + 1) / 2
-    else:
-        normalize = True
-
     if nrow is None:
         nrow = int(np.sqrt(len(samples)))
 
     grid_samples = make_grid(samples, nrow=nrow, normalize=normalize, scale_each=True)
-    grid_img = grid_samples.clip(0, 1).permute(1, 2, 0)
+    grid_img = grid_samples.permute(1, 2, 0)
 
     plt.figure(figsize=(6, 6) if figsize is None else figsize)
     plt.title(title, fontsize=TITLE_FONT_SIZE)
