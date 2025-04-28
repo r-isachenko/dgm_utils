@@ -30,7 +30,9 @@ def train_epoch(
     for batch in tqdm(train_loader, desc=f'Training epoch {epoch}'):
         if conditional:
             x, y = batch
-            x, y = x.to(device), y.to(device)
+            x = x.to(device)
+            if isinstace(y, torch.Tensor):
+                y = y.to(device)
             losses = model.loss(x, y)
         else:
             x = batch.to(device)
@@ -58,7 +60,9 @@ def eval_model(
         for batch in tqdm(data_loader, desc=f'Evaluating epoch {epoch}'):
             if conditional:
                 x, y = batch
-                x, y = x.to(device), y.to(device)
+                x = x.to(device)
+                if isinstace(y, torch.Tensor):
+                    y = y.to(device)
                 losses = model.loss(x, y)
             else:
                 x = batch.to(device)
