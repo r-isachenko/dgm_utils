@@ -3,6 +3,7 @@ from typing import Literal, Optional, Tuple
 import numpy as np
 from sklearn.datasets import make_moons
 
+import torch.utils.data import Dataset
 import torchvision
 
 
@@ -126,7 +127,7 @@ def load_dataset(
 
     return train_data, test_data
 
-class LabeledDataset(data.Dataset):
+class LabeledDataset(Dataset):
     def __init__(self, data, labels):
         super().__init__()
         self.data = data
