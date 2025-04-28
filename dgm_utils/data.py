@@ -32,8 +32,11 @@ def prepare_images(
     return train_data, test_data
 
 def load_MNIST(with_targets: bool = False) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray, Optional[np.ndarray]]:
-    train_dataset = torchvision.datasets.MNIST(root="./", train=True, download=True)
-    test_dataset = torchvision.datasets.MNIST(root="./", train=False, download=True)
+    transform = transforms.Compose([
+        transforms.Resize((32, 32)),
+    ])
+    train_dataset = torchvision.datasets.MNIST(root="./", train=True, transform=transform, download=True)
+    test_dataset = torchvision.datasets.MNIST(root="./", train=False, transform=transform, download=True)
     train_data, test_data = train_dataset.data.numpy(), test_dataset.data.numpy()
     axis_index = len(train_data.shape)
     train_data = np.expand_dims(train_data, axis=axis_index)
@@ -122,3 +125,17 @@ def load_dataset(
         return train_data, train_labels, test_data, test_labels
 
     return train_data, test_data
+
+class LabeledDataset(data.Dataset):
+    def __init__(self, data, labels):
+        super().__init__()
+        self.data = data
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        x = self.data[idx]
+        y = self.labels[idx]
+        return x, y
