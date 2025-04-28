@@ -20,15 +20,21 @@ def train_epoch(
     model: BaseModel,
     train_loader: DataLoader,
     optimizer: Optimizer,
+    conditional: bool = False,
     device: str = "cpu",
     loss_key: str = "total",
 ) -> defaultdict[str, List[float]]:
     model.train()
 
     stats = defaultdict(list)
-    for x in tqdm(train_loader, desc=f'Training epoch {epoch}'):
-        x = x.to(device)
-        losses = model.loss(x)
+    for batch in tqdm(train_loader, desc=f'Training epoch {epoch}'):
+        if conditional:
+            x, y = batch
+            x, y = x.to(device), y.to(device)
+            losses = model.loss(x, y)
+        else:
+            x = batch.to(device)
+            losses = model.loss(x)
         optimizer.zero_grad()
         losses[loss_key].backward()
         optimizer.step()
@@ -39,13 +45,25 @@ def train_epoch(
     return stats
 
 
-def eval_model(epoch: int, model: BaseModel, data_loader: DataLoader, device: str = "cpu") -> defaultdict[str, float]:
+def eval_model(
+    epoch: int, 
+    model: BaseModel, 
+    data_loader: DataLoader, 
+    conditional: bool = False,
+    device: str = "cpu"
+) -> defaultdict[str, float]:
     model.eval()
     stats = defaultdict(float)
     with torch.no_grad():
-        for x in tqdm(data_loader, desc=f'Evaluating epoch {epoch}'):
-            x = x.to(device)
-            losses = model.loss(x)
+        for batch in tqdm(data_loader, desc=f'Evaluating epoch {epoch}'):
+            if conditional:
+                x, y = batch
+                x, y = x.to(device), y.to(device)
+                losses = model.loss(x, y)
+            else:
+                x = batch.to(device)
+                losses = model.loss(x)
+            
             for k, v in losses.items():
                 stats[k] += v.item() * x.shape[0]
 
@@ -68,12 +86,13 @@ def train_model(
     epochs: int,
     optimizer: Optimizer,
     scheduler: Optional[LRScheduler] = None,
-    device: str = "cpu",
+    conditional: bool = False,
     loss_key: str = "total_loss",
     n_samples: int = 100,
     visualize_samples: bool = True,
     logscale_y: bool = False,
     logscale_x: bool = False,
+    device: str = "cpu",
 ):
 
     train_losses: Dict[str, List[float]] = defaultdict(list)
@@ -83,11 +102,11 @@ def train_model(
 
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch(
-            epoch, model, train_loader, optimizer, device, loss_key
+            epoch, model, train_loader, optimizer, conditional, device, loss_key
         )
         if scheduler is not None:
             scheduler.step()
-        test_loss = eval_model(epoch, model, test_loader, device)
+        test_loss = eval_model(epoch, model, test_loader, conditional, device)
 
         for k in train_loss.keys():
             train_losses[k].extend(train_loss[k])
