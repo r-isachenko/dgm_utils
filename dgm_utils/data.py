@@ -3,7 +3,7 @@ from typing import Literal, Optional, Tuple
 import numpy as np
 from sklearn.datasets import make_moons
 
-import torch.utils.data import Dataset
+from torch.utils.data import Dataset
 import torchvision
 
 
