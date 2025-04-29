@@ -33,8 +33,8 @@ def prepare_images(
     return train_data, test_data
 
 def load_MNIST(with_targets: bool = False) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray, Optional[np.ndarray]]:
-    transform = transforms.Compose([
-        transforms.Resize((32, 32)),
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.Resize((32, 32)),
     ])
     train_dataset = torchvision.datasets.MNIST(root="./", train=True, transform=transform, download=True)
     test_dataset = torchvision.datasets.MNIST(root="./", train=False, transform=transform, download=True)
