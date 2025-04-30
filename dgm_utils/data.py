@@ -3,8 +3,9 @@ from typing import Literal, Optional, Tuple
 import numpy as np
 from sklearn.datasets import make_moons
 
-from torch.utils.data import Dataset
+import torch
 import torchvision
+from torch.utils.data import Dataset
 
 
 TOY_DATASETS = ["moons"]
@@ -33,21 +34,15 @@ def prepare_images(
     return train_data, test_data
 
 def load_MNIST(with_targets: bool = False) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray, Optional[np.ndarray]]:
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize((32, 32)),
-    ])
-    train_dataset = torchvision.datasets.MNIST(root="./", train=True, transform=transform, download=True)
-    test_dataset = torchvision.datasets.MNIST(root="./", train=False, transform=transform, download=True)
-    train_data, test_data = train_dataset.data.numpy(), test_dataset.data.numpy()
-    axis_index = len(train_data.shape)
-    train_data = np.expand_dims(train_data, axis=axis_index)
-    test_data = np.expand_dims(test_data, axis=axis_index)
+    train_dataset = torchvision.datasets.MNIST(root="./", train=True, download=True)
+    test_dataset = torchvision.datasets.MNIST(root="./", train=False, download=True)
+    
+    transform = torchvision.transforms.Resize((32, 32))
+    train_data = torch.stack([transform(img.unsqueeze(0)) for img in train_dataset.data]).numpy().transpose(0, 2, 3, 1)
+    test_data = torch.stack([transform(img.unsqueeze(0)) for img in test_dataset.data]).numpy().transpose(0, 2, 3, 1)
 
     if with_targets:
-        train_labels, test_labels = (
-            train_dataset.targets.numpy(),
-            test_dataset.targets.numpy(),
-        )
+        train_labels, test_labels = train_dataset.targets.numpy(), test_dataset.targets.numpy()
         return train_data, train_labels, test_data, test_labels
 
     return train_data, None, test_data, None
