@@ -57,7 +57,6 @@ def show_samples(
     nrow: Optional[int] = None,
     normalize: bool = False
 ) -> None:
-    normalize = False
     if isinstance(samples, np.ndarray):
         samples = torch.tensor(samples)
     if nrow is None:
