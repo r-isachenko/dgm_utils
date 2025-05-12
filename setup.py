@@ -24,6 +24,7 @@ setup(
         "torchaudio",
         "gdown",
         "scikit-learn",
-        "torchdiffeq"
+        "torchdiffeq",
+        "torch-ema"
     ],
 )
