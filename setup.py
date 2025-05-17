@@ -25,6 +25,7 @@ setup(
         "gdown",
         "scikit-learn",
         "torchdiffeq",
-        "torch-ema"
+        "torch-ema",
+        "pot"
     ],
 )
