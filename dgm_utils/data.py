@@ -18,8 +18,8 @@ def prepare_images(
     binarize: bool = True
 ) -> Tuple[np.ndarray, np.ndarray]:
     if binarize:
-        train_data = (train_data > 128).astype("float32")
-        test_data = (test_data > 128).astype("float32")
+        train_data = (train_data > 128).astype("int64")
+        test_data = (test_data > 128).astype("int64")
     else:
         train_data = train_data / 255.0
         test_data = test_data / 255.0
