@@ -23,6 +23,8 @@ def train_epoch(
     conditional: bool = False,
     device: str = "cpu",
     loss_key: str = "total",
+    use_amp: bool = False,
+    scaler: Optional[torch.cuda.amp.GradScaler] = None,
 ) -> defaultdict[str, List[float]]:
     model.train()
 
@@ -31,13 +33,26 @@ def train_epoch(
         if conditional:
             x, y = batch
             x, y = x.to(device), y.to(device)
-            losses = model.loss(x, y)
         else:
             x = batch.to(device)
-            losses = model.loss(x)
         optimizer.zero_grad()
-        losses[loss_key].backward()
-        optimizer.step()
+        if use_amp:
+            with torch.cuda.amp.autocast():
+                if conditional:
+                    losses = model.loss(x, y)
+                else:
+                    losses = model.loss(x)
+                loss = losses[loss_key]
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            if conditional:
+                losses = model.loss(x, y)
+            else:
+                losses = model.loss(x)
+            losses[loss_key].backward()
+            optimizer.step()
 
         for k, v in losses.items():
             stats[k].append(v.item())
@@ -50,7 +65,8 @@ def eval_model(
     model: BaseModel, 
     data_loader: DataLoader, 
     conditional: bool = False,
-    device: str = "cpu"
+    device: str = "cpu",
+    use_amp: bool = False,
 ) -> defaultdict[str, float]:
     model.eval()
     stats = defaultdict(float)
@@ -59,11 +75,19 @@ def eval_model(
             if conditional:
                 x, y = batch
                 x, y = x.to(device), y.to(device)
-                losses = model.loss(x, y)
             else:
                 x = batch.to(device)
-                losses = model.loss(x)
-            
+            if use_amp:
+                with torch.cuda.amp.autocast():
+                    if conditional:
+                        losses = model.loss(x, y)
+                    else:
+                        losses = model.loss(x)
+            else:
+                if conditional:
+                    losses = model.loss(x, y)
+                else:
+                    losses = model.loss(x)
             for k, v in losses.items():
                 stats[k] += v.item() * x.shape[0]
 
@@ -93,20 +117,22 @@ def train_model(
     logscale_y: bool = False,
     logscale_x: bool = False,
     device: str = "cpu",
+    use_amp: bool = False,
 ):
-
     train_losses: Dict[str, List[float]] = defaultdict(list)
     test_losses: Dict[str, List[float]] = defaultdict(list)
     model = model.to(device)
     print("Start of the training")
 
+    scaler = torch.cuda.amp.GradScaler() if use_amp else None
+
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch(
-            epoch, model, train_loader, optimizer, conditional, device, loss_key
+            epoch, model, train_loader, optimizer, conditional, device, loss_key, use_amp, scaler
         )
         if scheduler is not None:
             scheduler.step()
-        test_loss = eval_model(epoch, model, test_loader, conditional, device)
+        test_loss = eval_model(epoch, model, test_loader, conditional, device, use_amp)
 
         for k in train_loss.keys():
             train_losses[k].extend(train_loss[k])
