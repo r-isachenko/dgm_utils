@@ -1,7 +1,7 @@
 from collections import defaultdict
 from IPython.display import clear_output
 from typing import Dict, List, Optional
-
+from contextlib import nullcontext
 import numpy as np
 
 import torch
@@ -34,24 +34,19 @@ def train_epoch(
             x, y = batch
             x, y = x.to(device), y.to(device)
         else:
-            x = batch.to(device)
+            x, y = batch.to(device), None
         optimizer.zero_grad()
+        ctx = torch.cuda.amp.autocast() if use_amp else nullcontext()
+        with ctx:
+            losses = model.loss(x, y) if y is not None else model.loss(x)
+            loss = losses[loss_key]
+
         if use_amp:
-            with torch.cuda.amp.autocast():
-                if conditional:
-                    losses = model.loss(x, y)
-                else:
-                    losses = model.loss(x)
-                loss = losses[loss_key]
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
         else:
-            if conditional:
-                losses = model.loss(x, y)
-            else:
-                losses = model.loss(x)
-            losses[loss_key].backward()
+            loss.backward()
             optimizer.step()
 
         for k, v in losses.items():
@@ -76,18 +71,10 @@ def eval_model(
                 x, y = batch
                 x, y = x.to(device), y.to(device)
             else:
-                x = batch.to(device)
-            if use_amp:
-                with torch.cuda.amp.autocast():
-                    if conditional:
-                        losses = model.loss(x, y)
-                    else:
-                        losses = model.loss(x)
-            else:
-                if conditional:
-                    losses = model.loss(x, y)
-                else:
-                    losses = model.loss(x)
+                x, y = batch.to(device), None
+            ctx = torch.cuda.amp.autocast() if use_amp else nullcontext()
+            with ctx:
+                losses = model.loss(x, y) if y is not None else model.loss(x)
             for k, v in losses.items():
                 stats[k] += v.item() * x.shape[0]
 
