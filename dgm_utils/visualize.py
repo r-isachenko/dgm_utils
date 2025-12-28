@@ -19,19 +19,16 @@ def plot_training_curves(
     logscale_y: bool = False,
     logscale_x: bool = False,
 ) -> None:
-    if test_losses is not None:
-        n_test = len(test_losses[list(train_losses.keys())[0]])
-        x_test = np.arange(n_test)
+    plt.figure()
 
     n_train = len(train_losses[list(train_losses.keys())[0]])
-    x_train = np.linspace(0, epochs - 1, n_train)
-    
-
-    plt.figure()
+    x_train = np.linspace(0, epochs, n_train)
     for key, value in train_losses.items():
         plt.plot(x_train, value, label=key + "_train")
 
     if test_losses is not None:
+        n_test = len(test_losses[list(test_losses.keys())[0]])
+        x_test = np.arange(n_test)
         for key, value in test_losses.items():
             plt.plot(x_test, value, label=key + "_test")
 
