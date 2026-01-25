@@ -1,7 +1,7 @@
 from collections import defaultdict
 from IPython.display import clear_output
 from typing import Dict, List, Optional
-
+from contextlib import nullcontext
 import numpy as np
 
 import torch
@@ -23,6 +23,8 @@ def train_epoch(
     conditional: bool = False,
     device: str = "cpu",
     loss_key: str = "total",
+    use_amp: bool = False,
+    scaler: Optional[torch.cuda.amp.GradScaler] = None,
 ) -> defaultdict[str, List[float]]:
     model.train()
 
@@ -31,13 +33,21 @@ def train_epoch(
         if conditional:
             x, y = batch
             x, y = x.to(device), y.to(device)
-            losses = model.loss(x, y)
         else:
-            x = batch.to(device)
-            losses = model.loss(x)
+            x, y = batch.to(device), None
         optimizer.zero_grad()
-        losses[loss_key].backward()
-        optimizer.step()
+        ctx = torch.cuda.amp.autocast() if use_amp else nullcontext()
+        with ctx:
+            losses = model.loss(x, y) if y is not None else model.loss(x)
+            loss = losses[loss_key]
+
+        if use_amp:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
 
         for k, v in losses.items():
             stats[k].append(v.item())
@@ -50,7 +60,8 @@ def eval_model(
     model: BaseModel,
     data_loader: DataLoader,
     conditional: bool = False,
-    device: str = "cpu"
+    device: str = "cpu",
+    use_amp: bool = False,
 ) -> defaultdict[str, float]:
     model.eval()
     stats = defaultdict(float)
@@ -59,11 +70,11 @@ def eval_model(
             if conditional:
                 x, y = batch
                 x, y = x.to(device), y.to(device)
-                losses = model.loss(x, y)
             else:
-                x = batch.to(device)
-                losses = model.loss(x)
-
+                x, y = batch.to(device), None
+            ctx = torch.cuda.amp.autocast() if use_amp else nullcontext()
+            with ctx:
+                losses = model.loss(x, y) if y is not None else model.loss(x)
             for k, v in losses.items():
                 stats[k] += v.item() * x.shape[0]
 
@@ -93,24 +104,25 @@ def train_model(
     logscale_y: bool = False,
     logscale_x: bool = False,
     device: str = "cpu",
+    use_amp: bool = False,
 ):
-
     train_losses: Dict[str, List[float]] = defaultdict(list)
     test_losses: Dict[str, List[float]] = defaultdict(list)
     model = model.to(device)
     print("Start of the training")
 
+    scaler = torch.cuda.amp.GradScaler() if use_amp else None
     test_loss = eval_model(0, model, test_loader, conditional, device)
     for k in test_loss.keys():
         test_losses[k].append(test_loss[k])
 
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch(
-            epoch, model, train_loader, optimizer, conditional, device, loss_key
+            epoch, model, train_loader, optimizer, conditional, device, loss_key, use_amp, scaler
         )
         if scheduler is not None:
             scheduler.step()
-        test_loss = eval_model(epoch, model, test_loader, conditional, device)
+        test_loss = eval_model(epoch, model, test_loader, conditional, device, use_amp)
 
         for k in train_loss.keys():
             train_losses[k].extend(train_loss[k])
@@ -231,5 +243,5 @@ def train_adversarial(
             clear_output(wait=True)
             print(f"Epoch: {epoch}, {generator_loss_key}: {g_epoch_loss:.3f}, {discriminator_loss_key}: {d_epoch_loss:.3f}")
             plot_training_curves(epoch, train_losses, None, logscale_y, logscale_x)
-
+                    
     print("End of the training")
