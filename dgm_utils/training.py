@@ -16,7 +16,7 @@ from .model import BaseModel
 
 
 def train_epoch(
-    epoch: int, 
+    epoch: int,
     model: BaseModel,
     train_loader: DataLoader,
     optimizer: Optimizer,
@@ -56,9 +56,9 @@ def train_epoch(
 
 
 def eval_model(
-    epoch: int, 
-    model: BaseModel, 
-    data_loader: DataLoader, 
+    epoch: int,
+    model: BaseModel,
+    data_loader: DataLoader,
     conditional: bool = False,
     device: str = "cpu",
     use_amp: bool = False,
@@ -112,6 +112,9 @@ def train_model(
     print("Start of the training")
 
     scaler = torch.cuda.amp.GradScaler() if use_amp else None
+    test_loss = eval_model(0, model, test_loader, conditional, device)
+    for k in test_loss.keys():
+        test_losses[k].append(test_loss[k])
 
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch(
@@ -123,6 +126,7 @@ def train_model(
 
         for k in train_loss.keys():
             train_losses[k].extend(train_loss[k])
+        for k in test_loss.keys():
             test_losses[k].append(test_loss[k])
 
         epoch_loss = np.mean(train_loss[loss_key])
@@ -131,7 +135,7 @@ def train_model(
                 samples = model.sample(n_samples)
                 if isinstance(samples, torch.Tensor):
                     samples = samples.cpu().detach().numpy()
-    
+
             clear_output(wait=True)
             title = f"Samples, epoch: {epoch}, {loss_key}: {epoch_loss:.3f}"
             if check_samples_is_2d(samples):
@@ -143,13 +147,13 @@ def train_model(
             clear_output(wait=True)
             print(f"Epoch: {epoch}, loss: {epoch_loss}")
             plot_training_curves(epoch, train_losses, test_losses, logscale_y, logscale_x)
-                    
+
     print("End of the training")
 
 
 
 def train_epoch_adversarial(
-    epoch: int, 
+    epoch: int,
     d_steps: int,
     gan: BaseModel,
     train_loader: DataLoader,
@@ -206,13 +210,13 @@ def train_adversarial(
 
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch_adversarial(
-            epoch, 
-            d_steps, 
-            gan, 
-            train_loader, 
+            epoch,
+            d_steps,
+            gan,
+            train_loader,
             generator_optimizer,
             discriminator_optimizer,
-            device, 
+            device,
             generator_loss_key,
             discriminator_loss_key
         )
@@ -227,7 +231,7 @@ def train_adversarial(
                 samples = gan.sample(n_samples)
                 if isinstance(samples, torch.Tensor):
                     samples = samples.cpu().detach().numpy()
-    
+
             clear_output(wait=True)
             title = f"Samples, epoch: {epoch}, {generator_loss_key}: {g_epoch_loss:.3f}, {discriminator_loss_key}: {d_epoch_loss:.3f}"
             if check_samples_is_2d(samples):
