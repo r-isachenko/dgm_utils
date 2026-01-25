@@ -1,6 +1,8 @@
+"""Training utilities for deep generative models."""
+
 from collections import defaultdict
 from IPython.display import clear_output
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from contextlib import nullcontext
 import numpy as np
 
@@ -22,21 +24,38 @@ def train_epoch(
     optimizer: Optimizer,
     conditional: bool = False,
     device: str = "cpu",
-    loss_key: str = "total",
+    loss_key: str = "total_loss",
     use_amp: bool = False,
-    scaler: Optional[torch.cuda.amp.GradScaler] = None,
-) -> defaultdict[str, List[float]]:
+    scaler: Optional[torch.amp.GradScaler] = None,
+) -> Dict[str, List[float]]:
+    """
+    Train the model for one epoch.
+    
+    Args:
+        epoch: Current epoch number (for logging).
+        model: The model to train.
+        train_loader: DataLoader for training data.
+        optimizer: Optimizer for updating model parameters.
+        conditional: Whether the model is conditional (expects (x, y) batches).
+        device: Device to train on ("cpu" or "cuda").
+        loss_key: Key in the loss dict to use for backpropagation.
+        use_amp: Whether to use automatic mixed precision.
+        scaler: GradScaler for AMP training.
+    
+    Returns:
+        Dictionary mapping loss names to lists of per-batch loss values.
+    """
     model.train()
 
-    stats = defaultdict(list)
-    for batch in tqdm(train_loader, desc=f'Training epoch {epoch}'):
+    stats: Dict[str, List[float]] = defaultdict(list)
+    for batch in tqdm(train_loader, desc=f"Training epoch {epoch}"):
         if conditional:
             x, y = batch
             x, y = x.to(device), y.to(device)
         else:
             x, y = batch.to(device), None
         optimizer.zero_grad()
-        ctx = torch.cuda.amp.autocast() if use_amp else nullcontext()
+        ctx = torch.amp.autocast("cuda") if use_amp else nullcontext()
         with ctx:
             losses = model.loss(x, y) if y is not None else model.loss(x)
             loss = losses[loss_key]
@@ -62,32 +81,45 @@ def eval_model(
     conditional: bool = False,
     device: str = "cpu",
     use_amp: bool = False,
-) -> defaultdict[str, float]:
+) -> Dict[str, float]:
+    """
+    Evaluate the model on a dataset.
+    
+    Args:
+        epoch: Current epoch number (for logging).
+        model: The model to evaluate.
+        data_loader: DataLoader for evaluation data.
+        conditional: Whether the model is conditional (expects (x, y) batches).
+        device: Device to evaluate on ("cpu" or "cuda").
+        use_amp: Whether to use automatic mixed precision.
+    
+    Returns:
+        Dictionary mapping loss names to average loss values over the dataset.
+    """
     model.eval()
-    stats = defaultdict(float)
+    stats: Dict[str, float] = defaultdict(float)
     with torch.no_grad():
-        for batch in tqdm(data_loader, desc=f'Evaluating epoch {epoch}'):
+        for batch in tqdm(data_loader, desc=f"Evaluating epoch {epoch}"):
             if conditional:
                 x, y = batch
                 x, y = x.to(device), y.to(device)
             else:
                 x, y = batch.to(device), None
-            ctx = torch.cuda.amp.autocast() if use_amp else nullcontext()
+            ctx = torch.amp.autocast("cuda") if use_amp else nullcontext()
             with ctx:
                 losses = model.loss(x, y) if y is not None else model.loss(x)
             for k, v in losses.items():
                 stats[k] += v.item() * x.shape[0]
 
         for k in stats.keys():
-            stats[k] /= len(data_loader.dataset) # type: ignore
+            stats[k] /= len(data_loader.dataset)  # type: ignore
     return stats
 
 
 def check_samples_is_2d(samples: np.ndarray) -> bool:
+    """Check if samples are 2D points (for visualization)."""
     shape = samples.shape
-    if len(shape) == 2 and shape[1] == 2:
-        return True
-    return False
+    return len(shape) == 2 and shape[1] == 2
 
 
 def train_model(
@@ -105,13 +137,32 @@ def train_model(
     logscale_x: bool = False,
     device: str = "cpu",
     use_amp: bool = False,
-):
+) -> None:
+    """
+    Train a generative model with visualization.
+    
+    Args:
+        model: The model to train.
+        train_loader: DataLoader for training data.
+        test_loader: DataLoader for test data.
+        epochs: Number of training epochs.
+        optimizer: Optimizer for updating model parameters.
+        scheduler: Optional learning rate scheduler.
+        conditional: Whether the model is conditional (expects (x, y) batches).
+        loss_key: Key in the loss dict to use for backpropagation.
+        n_samples: Number of samples to generate for visualization.
+        visualize_samples: Whether to visualize generated samples during training.
+        logscale_y: Whether to use log scale for y-axis in loss plots.
+        logscale_x: Whether to use log scale for x-axis in loss plots.
+        device: Device to train on ("cpu" or "cuda").
+        use_amp: Whether to use automatic mixed precision.
+    """
     train_losses: Dict[str, List[float]] = defaultdict(list)
     test_losses: Dict[str, List[float]] = defaultdict(list)
     model = model.to(device)
     print("Start of the training")
 
-    scaler = torch.cuda.amp.GradScaler() if use_amp else None
+    scaler = torch.amp.GradScaler("cuda") if use_amp else None
     test_loss = eval_model(0, model, test_loader, conditional, device)
     for k in test_loss.keys():
         test_losses[k].append(test_loss[k])
@@ -162,11 +213,29 @@ def train_epoch_adversarial(
     device: str = "cpu",
     generator_loss_key: str = "g_total_loss",
     discriminator_loss_key: str = "d_total_loss",
-) -> defaultdict[str, List[float]]:
-    stats = defaultdict(list)
+) -> Dict[str, List[float]]:
+    """
+    Train a GAN for one epoch.
+    
+    Args:
+        epoch: Current epoch number (for logging).
+        d_steps: Number of discriminator steps per generator step.
+        gan: The GAN model with loss_discriminator and loss_generator methods.
+        train_loader: DataLoader for training data.
+        generator_optimizer: Optimizer for the generator.
+        discriminator_optimizer: Optimizer for the discriminator.
+        device: Device to train on ("cpu" or "cuda").
+        generator_loss_key: Key in the generator loss dict for backpropagation.
+        discriminator_loss_key: Key in the discriminator loss dict for backpropagation.
+    
+    Returns:
+        Dictionary mapping loss names to lists of per-batch loss values.
+    """
+    stats: Dict[str, List[float]] = defaultdict(list)
+    g_losses: Dict[str, torch.Tensor] = {}
 
     gan.train()
-    for iteration, x in enumerate(tqdm(train_loader, desc=f'Training epoch {epoch}')):
+    for iteration, x in enumerate(tqdm(train_loader, desc=f"Training epoch {epoch}")):
         x = x.to(device)
         discriminator_optimizer.zero_grad()
         d_losses = gan.loss_discriminator(x)
@@ -201,7 +270,29 @@ def train_adversarial(
     visualize_samples: bool = True,
     logscale_y: bool = False,
     logscale_x: bool = False,
-):
+) -> None:
+    """
+    Train a GAN with visualization.
+    
+    Args:
+        gan: The GAN model with generator, discriminator, loss_discriminator,
+            loss_generator, and sample methods.
+        train_loader: DataLoader for training data.
+        epochs: Number of training epochs.
+        d_steps: Number of discriminator steps per generator step.
+        generator_optimizer: Optimizer for the generator.
+        discriminator_optimizer: Optimizer for the discriminator.
+        device: Device to train on ("cpu" or "cuda").
+        generator_loss_key: Key in the generator loss dict for backpropagation.
+        discriminator_loss_key: Key in the discriminator loss dict for backpropagation.
+        n_samples: Number of samples to generate for visualization.
+        visualize_samples: Whether to visualize generated samples during training.
+        logscale_y: Whether to use log scale for y-axis in loss plots.
+        logscale_x: Whether to use log scale for x-axis in loss plots.
+    
+    Raises:
+        AssertionError: If generator_loss_key equals discriminator_loss_key.
+    """
     assert generator_loss_key != discriminator_loss_key, "Loss keys must be different!"
     gan.discriminator = gan.discriminator.to(device)
     gan.generator = gan.generator.to(device)

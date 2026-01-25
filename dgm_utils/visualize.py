@@ -1,7 +1,10 @@
+"""Visualization utilities for deep generative models."""
+
+from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 from matplotlib import pyplot as plt
 from torchvision.utils import make_grid
-from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -19,6 +22,16 @@ def plot_training_curves(
     logscale_y: bool = False,
     logscale_x: bool = False,
 ) -> None:
+    """
+    Plot training and test loss curves.
+    
+    Args:
+        epochs: Number of epochs trained.
+        train_losses: Dictionary mapping loss names to lists of training losses.
+        test_losses: Optional dictionary mapping loss names to lists of test losses.
+        logscale_y: Whether to use log scale for y-axis.
+        logscale_x: Whether to use log scale for x-axis.
+    """
     plt.figure()
 
     n_train = len(train_losses[list(train_losses.keys())[0]])
@@ -48,12 +61,22 @@ def plot_training_curves(
 
 
 def show_samples(
-    samples: np.ndarray | torch.Tensor,
+    samples: Union[np.ndarray, torch.Tensor],
     title: str,
     figsize: Optional[Tuple[int, int]] = None,
     nrow: Optional[int] = None,
     normalize: bool = False
 ) -> None:
+    """
+    Display a grid of image samples.
+    
+    Args:
+        samples: Image samples with shape (N, C, H, W).
+        title: Title for the plot.
+        figsize: Optional figure size as (width, height).
+        nrow: Number of images per row. Defaults to sqrt(N).
+        normalize: Whether to normalize images for display.
+    """
     if isinstance(samples, np.ndarray):
         samples = torch.tensor(samples)
     if nrow is None:
@@ -70,6 +93,13 @@ def show_samples(
 
 
 def visualize_images(data: np.ndarray, title: str) -> None:
+    """
+    Display a random sample of 100 images from a dataset.
+    
+    Args:
+        data: Image dataset with shape (N, C, H, W).
+        title: Title for the plot.
+    """
     idxs = np.random.choice(len(data), replace=False, size=(100,))
     images = data[idxs]
     show_samples(images, title)
@@ -78,10 +108,20 @@ def visualize_images(data: np.ndarray, title: str) -> None:
 def visualize_2d_data(
     train_data: np.ndarray,
     test_data: np.ndarray,
-    train_labels: Optional[str] = None,
-    test_labels: Optional[str] = None,
+    train_labels: Optional[np.ndarray] = None,
+    test_labels: Optional[np.ndarray] = None,
     s: int = 10
 ) -> None:
+    """
+    Visualize 2D train and test data side by side.
+    
+    Args:
+        train_data: Training data with shape (N, 2).
+        test_data: Test data with shape (N, 2).
+        train_labels: Optional labels for coloring train points.
+        test_labels: Optional labels for coloring test points.
+        s: Marker size for scatter plot.
+    """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     ax1.set_title("train", fontsize=TITLE_FONT_SIZE)
     ax1.scatter(train_data[:, 0], train_data[:, 1], s=s, c=train_labels)
@@ -95,11 +135,22 @@ def visualize_2d_data(
 def visualize_2d_samples(
     data: np.ndarray,
     title: str,
-    labels: Optional[str] = None,
-    xlabel: str = "x1",
-    ylabel: str = "x2",
+    labels: Optional[np.ndarray] = None,
+    xlabel: Optional[str] = "x1",
+    ylabel: Optional[str] = "x2",
     s: int = 10
 ) -> None:
+    """
+    Visualize 2D sample data.
+    
+    Args:
+        data: Sample data with shape (N, 2).
+        title: Title for the plot.
+        labels: Optional labels for coloring points.
+        xlabel: Label for x-axis. Set to None to hide.
+        ylabel: Label for y-axis. Set to None to hide.
+        s: Marker size for scatter plot.
+    """
     plt.figure(figsize=(5, 5))
     plt.scatter(data[:, 0], data[:, 1], s=s, c=labels)
     plt.title(title, fontsize=TITLE_FONT_SIZE)
@@ -120,9 +171,19 @@ def visualize_2d_densities(
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
 ) -> None:
+    """
+    Visualize 2D density estimates as a heatmap.
+    
+    Args:
+        x_grid: X coordinates of the grid.
+        y_grid: Y coordinates of the grid.
+        densities: Density values at each grid point.
+        title: Title for the plot.
+        xlabel: Optional label for x-axis.
+        ylabel: Optional label for y-axis.
+    """
     densities = densities.reshape([y_grid.shape[0], y_grid.shape[1]])
     plt.figure(figsize=(5, 5))
-    plt.pcolor(x_grid, y_grid, densities)
     plt.pcolor(x_grid, y_grid, densities)
 
     plt.title(title, fontsize=TITLE_FONT_SIZE)
