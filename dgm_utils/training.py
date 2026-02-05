@@ -22,6 +22,7 @@ def train_epoch(
     model: BaseModel,
     train_loader: DataLoader,
     optimizer: Optimizer,
+    gradient_clip_val: Optional[float] = None,
     conditional: bool = False,
     device: str = "cpu",
     loss_key: str = "total_loss",
@@ -36,6 +37,7 @@ def train_epoch(
         model: The model to train.
         train_loader: DataLoader for training data.
         optimizer: Optimizer for updating model parameters.
+        gradient_clip_val: Optional gradient norm clipping value.
         conditional: Whether the model is conditional (expects (x, y) batches).
         device: Device to train on ("cpu" or "cuda").
         loss_key: Key in the loss dict to use for backpropagation.
@@ -62,10 +64,14 @@ def train_epoch(
 
         if use_amp:
             scaler.scale(loss).backward()
+            if gradient_clip_val is not None:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=gradient_clip_val)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss.backward()
+            if gradient_clip_val is not None:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=gradient_clip_val)
             optimizer.step()
 
         for k, v in losses.items():
@@ -129,6 +135,7 @@ def train_model(
     epochs: int,
     optimizer: Optimizer,
     scheduler: Optional[LRScheduler] = None,
+    gradient_clip_val: Optional[float] = None,
     conditional: bool = False,
     loss_key: str = "total_loss",
     n_samples: int = 100,
@@ -148,6 +155,7 @@ def train_model(
         epochs: Number of training epochs.
         optimizer: Optimizer for updating model parameters.
         scheduler: Optional learning rate scheduler.
+        gradient_clip_val: Optional gradient norm clipping value.
         conditional: Whether the model is conditional (expects (x, y) batches).
         loss_key: Key in the loss dict to use for backpropagation.
         n_samples: Number of samples to generate for visualization.
@@ -169,7 +177,7 @@ def train_model(
 
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch(
-            epoch, model, train_loader, optimizer, conditional, device, loss_key, use_amp, scaler
+            epoch, model, train_loader, optimizer, gradient_clip_val, conditional, device, loss_key, use_amp, scaler
         )
         if scheduler is not None:
             scheduler.step()
