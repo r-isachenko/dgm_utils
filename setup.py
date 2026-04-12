@@ -26,6 +26,7 @@ setup(
         "scikit-learn",
         "torchdiffeq",
         "torch-ema",
-        "pot"
+        "pot",
+        "torchmetrics[image]"
     ],
 )
