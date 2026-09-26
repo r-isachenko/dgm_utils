@@ -65,6 +65,7 @@ def train_epoch(
         if use_amp:
             scaler.scale(loss).backward()
             if gradient_clip_val is not None:
+                scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=gradient_clip_val)
             scaler.step(optimizer)
             scaler.update()
