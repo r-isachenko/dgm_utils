@@ -222,6 +222,7 @@ def train_epoch_adversarial(
     device: str = "cpu",
     generator_loss_key: str = "g_total_loss",
     discriminator_loss_key: str = "d_total_loss",
+    generator_uses_batch: bool = False,
 ) -> Dict[str, List[float]]:
     """
     Train a GAN for one epoch.
@@ -236,6 +237,7 @@ def train_epoch_adversarial(
         device: Device to train on ("cpu" or "cuda").
         generator_loss_key: Key in the generator loss dict for backpropagation.
         discriminator_loss_key: Key in the discriminator loss dict for backpropagation.
+        generator_uses_batch: Pass the input batch to loss_generator instead of its size.
     
     Returns:
         Dictionary mapping loss names to lists of per-batch loss values.
@@ -253,7 +255,7 @@ def train_epoch_adversarial(
 
         if iteration % d_steps == 0:
             generator_optimizer.zero_grad()
-            g_losses = gan.loss_generator(x.shape[0])
+            g_losses = gan.loss_generator(x if generator_uses_batch else x.shape[0])
             g_losses[generator_loss_key].backward()
             generator_optimizer.step()
 
@@ -279,13 +281,14 @@ def train_adversarial(
     visualize_samples: bool = True,
     logscale_y: bool = False,
     logscale_x: bool = False,
+    generator_uses_batch: bool = False,
 ) -> None:
     """
     Train a GAN with visualization.
     
     Args:
-        gan: The GAN model with generator, discriminator, loss_discriminator,
-            loss_generator, and sample methods.
+        gan: The GAN model with loss_discriminator, loss_generator,
+            and sample methods.
         train_loader: DataLoader for training data.
         epochs: Number of training epochs.
         d_steps: Number of discriminator steps per generator step.
@@ -294,6 +297,7 @@ def train_adversarial(
         device: Device to train on ("cpu" or "cuda").
         generator_loss_key: Key in the generator loss dict for backpropagation.
         discriminator_loss_key: Key in the discriminator loss dict for backpropagation.
+        generator_uses_batch: Pass the input batch to loss_generator instead of its size.
         n_samples: Number of samples to generate for visualization.
         visualize_samples: Whether to visualize generated samples during training.
         logscale_y: Whether to use log scale for y-axis in loss plots.
@@ -303,8 +307,7 @@ def train_adversarial(
         AssertionError: If generator_loss_key equals discriminator_loss_key.
     """
     assert generator_loss_key != discriminator_loss_key, "Loss keys must be different!"
-    gan.discriminator = gan.discriminator.to(device)
-    gan.generator = gan.generator.to(device)
+    gan = gan.to(device)
 
     train_losses: Dict[str, List[float]] = defaultdict(list)
 
@@ -318,7 +321,8 @@ def train_adversarial(
             discriminator_optimizer,
             device,
             generator_loss_key,
-            discriminator_loss_key
+            discriminator_loss_key,
+            generator_uses_batch=generator_uses_batch,
         )
         for k in train_loss.keys():
             train_losses[k].extend(train_loss[k])
